@@ -1,0 +1,100 @@
+/*
+  markdown.qpp
+
+  Qore Programming Language
+
+  Copyright 2012-2013 Qore Technologies
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
+
+#include <qore/Qore.h>
+#include "markdown.h"
+#include "html.h"
+
+
+static QoreNamespace MarkdownNS("Markdown");
+
+
+void init_markdown_functions(QoreNamespace& ns);
+
+QoreStringNode * markdown_module_init() {
+    init_markdown_functions(MarkdownNS);
+    return 0;
+}
+
+void markdown_module_ns_init(QoreNamespace *rns, QoreNamespace *qns) {
+    qns->addNamespace(MarkdownNS.copy());
+}
+
+void markdown_module_delete() {
+   // nothing to do here in this case
+}
+
+
+// qore module symbols
+DLLEXPORT char qore_module_name[] = "markdown";
+DLLEXPORT char qore_module_version[] = PACKAGE_VERSION;
+DLLEXPORT char qore_module_description[] = "Markdwon parser module";
+DLLEXPORT char qore_module_author[] = "Petr Vanek";
+DLLEXPORT char qore_module_url[] = "http://qore.org";
+DLLEXPORT int qore_module_api_major = QORE_MODULE_API_MAJOR;
+DLLEXPORT int qore_module_api_minor = QORE_MODULE_API_MINOR;
+DLLEXPORT qore_module_init_t qore_module_init = markdown_module_init;
+DLLEXPORT qore_module_ns_init_t qore_module_ns_init = markdown_module_ns_init;
+DLLEXPORT qore_module_delete_t qore_module_delete = markdown_module_delete;
+DLLEXPORT qore_license_t qore_module_license = QL_LGPL;
+
+
+/** @defgroup markdown_functions Markdown Functions
+ */
+//@{
+namespace Qore::Markdown;
+
+//! get sundown's markdown version
+/**
+    TODO/FIXME
+ */
+string markdown_version() [flags=RET_VALUE_ONLY] {
+    return new QoreStringNode(SUNDOWN_VERSION);
+}
+
+//! Convert markdown string to HTML
+/**
+    TODO/FIXME
+ */
+string markdown_convert(string input) [flags=RET_VALUE_ONLY] {
+    unsigned int extensions = MKDEXT_NO_INTRA_EMPHASIS|MKDEXT_TABLES|MKDEXT_FENCED_CODE|MKDEXT_AUTOLINK|MKDEXT_STRIKETHROUGH|MKDEXT_SUPERSCRIPT|MKDEXT_LAX_SPACING;
+    sd_callbacks callbacks;
+    html_renderopt options;
+
+    sdhtml_renderer(&callbacks, &options, 0);
+    //sdhtml_toc_renderer(&callbacks, &options);
+
+    buf *ob = bufnew(64);
+    sd_markdown* md = sd_markdown_new(extensions, 16, &callbacks, &options);
+	sd_markdown_render(ob, (const uint8_t*)input->getBuffer(), input->size(), md);
+    // sdhtml_smartypants(ob, ib->data, ib->size);
+	sd_markdown_free(md);
+
+    QoreStringNode* ret = new QoreStringNode((const char*)ob->data, ob->size);
+
+    bufrelease(ob);
+
+    return ret;
+}
+
+//@}
